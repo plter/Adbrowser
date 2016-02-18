@@ -24,13 +24,23 @@ public class FilesListCell extends ListCell<FilesListViewCellData> {
         super.updateItem(item, empty);
 
         if (item != null) {
-            if (item.getFile().isDirectory()) {
-                controller.ivIcon.setImage(Images.getImage("folder.png"));
-            } else {
-                controller.ivIcon.setImage(Images.getImage("file.png"));
+
+            switch (item.getFile().getFileType()){
+                case DIRECTORY:
+                    controller.ivIcon.setImage(Images.getImage("folder.png"));
+                    break;
+                case LINK:
+                    controller.ivIcon.setImage(Images.getImage("link.png"));
+                    break;
+                default:
+                    controller.ivIcon.setImage(Images.getImage("file.png"));
             }
 
-            setText(item.getFile().getName());
+            if (item.getFile().isLink()) {
+                setText(item.getFile().getName() + " -> " + item.getFile().getLinkTarget());
+            } else {
+                setText(item.getFile().getName());
+            }
             setGraphic(result.getView());
         } else {
             setText(null);

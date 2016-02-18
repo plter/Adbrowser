@@ -14,25 +14,29 @@ public class File {
     private int currentIndex = 0;
     private char ch;
     private StringBuilder currentString = new StringBuilder();
-    private String name = null;
+    private String name = null, linkTarget = "";
+    private FileType fileType = FileType.FILE;
 
 
     public File(String cmdLine) {
         this.cmdLine = cmdLine;
 
-        if (cmdLine.length()<=0){
+        if (cmdLine.length() <= 0) {
             return;
         }
 
         switch (cmdLine.charAt(0)) {
             case 'd':
                 directory = true;
+                fileType = FileType.DIRECTORY;
                 break;
             case '-':
                 file = true;
+                fileType = FileType.FILE;
                 break;
             case 'l':
                 link = true;
+                fileType = FileType.LINK;
                 break;
         }
 
@@ -46,7 +50,17 @@ public class File {
         time = read();
 
         String lastStatement = cmdLine.substring(currentIndex).trim();
-        name = lastStatement.split("->")[0];
+        if (!isLink()) {
+            name = lastStatement;
+        } else {
+            if (lastStatement.contains("->")) {
+                String[] strings = lastStatement.split("->");
+                name = strings[0];
+                linkTarget = strings[1];
+            } else {
+                name = lastStatement;
+            }
+        }
     }
 
 
@@ -88,6 +102,14 @@ public class File {
 
     public String getName() {
         return name;
+    }
+
+    public String getLinkTarget() {
+        return linkTarget;
+    }
+
+    public FileType getFileType() {
+        return fileType;
     }
 
     private String read() {

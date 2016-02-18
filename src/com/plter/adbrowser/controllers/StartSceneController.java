@@ -8,6 +8,9 @@ import com.plter.adbrowser.ext.StringOutput;
 import com.plter.adbrowser.ext.TextAreaOutput;
 import com.plter.adbrowser.prefs.Preferences;
 import com.plter.adbrowser.views.ViewLoader;
+import javafx.application.Platform;
+import javafx.beans.value.ChangeListener;
+import javafx.beans.value.ObservableValue;
 import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
 import javafx.fxml.Initializable;
@@ -18,7 +21,9 @@ import javafx.scene.control.TextArea;
 import javafx.scene.control.TextField;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.VBox;
+import javafx.stage.DirectoryChooser;
 import javafx.stage.FileChooser;
+import javafx.stage.Window;
 
 import java.io.*;
 import java.net.URL;
@@ -33,12 +38,13 @@ public class StartSceneController implements Initializable {
     public FilesListView lvFiles;
     public Button btnStartBrowse;
     public Label lbCurrentDirPath;
+    public Button btnRetrieveFile;
     private String currentDirPath = "/";
     private File adbFile = null;
     private TextAreaOutput textAreaOutput;
 
     public static Scene createScene() {
-        return new Scene(ViewLoader.loadView("StartScene.fxml").getView(), 400, 600);
+        return new Scene(ViewLoader.loadView("StartScene.fxml").getView(), 550, 600);
     }
 
 
@@ -70,6 +76,16 @@ public class StartSceneController implements Initializable {
                 }
             }
         });
+        lvFiles.getSelectionModel().selectedItemProperty().addListener(new ChangeListener<FilesListViewCellData>() {
+            @Override
+            public void changed(ObservableValue<? extends FilesListViewCellData> observable, FilesListViewCellData oldValue, FilesListViewCellData newValue) {
+                if (newValue != null) {
+                    boolean isFile = newValue.getFile().isFile();
+                    btnRetrieveFile.setManaged(isFile);
+                    btnRetrieveFile.setVisible(isFile);
+                }
+            }
+        });
     }
 
     public void btnStartBrowseClickedHandler(ActionEvent actionEvent) {
@@ -80,8 +96,7 @@ public class StartSceneController implements Initializable {
         if (adbFile != null) {
             Process process = null;
             try {
-                Runtime runtime = Runtime.getRuntime();
-                process = runtime.exec(new String[]{adbFile.getAbsolutePath(), "shell", "ls", "-l", currentDirPath});
+                process = Runtime.getRuntime().exec(new String[]{adbFile.getAbsolutePath(), "shell", "ls", "-l", currentDirPath});
 
                 if (process.waitFor() == 0) {
                     StringOutput output = new StringOutput();
@@ -95,13 +110,21 @@ public class StartSceneController implements Initializable {
                         lbCurrentDirPath.setText(currentDirPath);
                         lvFiles.getItems().clear();
 
+                        String theLine;
                         for (String line : lines) {
-                            lvFiles.getItems().add(new FilesListViewCellData(new com.plter.adbrowser.ext.File(line)));
+                            theLine = line.trim();
+                            if (!theLine.equals("")) {
+                                lvFiles.getItems().add(new FilesListViewCellData(new com.plter.adbrowser.ext.File(theLine)));
+                            }
                         }
                     }
 
                     hideBtnStartBrowse();
                 } else {
+                    InputStream errorStream = process.getErrorStream();
+                    readInputStreamTo(errorStream, textAreaOutput);
+                    errorStream.close();
+
                     Dialogs.showMessageDialog("尚未连接设备", "提示");
                 }
             } catch (IOException | InterruptedException e) {
@@ -125,13 +148,17 @@ public class StartSceneController implements Initializable {
     public void btnBrowseForAdbClickedHandler(ActionEvent actionEvent) {
         FileChooser fc = new FileChooser();
         fc.setTitle("请选择adb文件的路径");
-        File result = fc.showOpenDialog(rootView.getScene().getWindow());
+        File result = fc.showOpenDialog(getWindow());
         if (result != null) {
             tfAdbPath.setText(result.getAbsolutePath());
             adbFile = result;
 
             Preferences.getInstance().saveAdbPath(adbFile.getPath());
         }
+    }
+
+    private Window getWindow() {
+        return rootView.getScene().getWindow();
     }
 
 
@@ -155,6 +182,47 @@ public class StartSceneController implements Initializable {
             currentDirPath = currentDirPath.substring(0, currentDirPath.lastIndexOf('/')) + "/";
 
             checkToShowCurrentDirContent();
+        }
+    }
+
+    public void btnRetrieveFileClickedHandler(ActionEvent actionEvent) {
+        DirectoryChooser fc = new DirectoryChooser();
+        fc.setTitle("选择文件保存目录");
+        File file = fc.showDialog(getWindow());
+        if (file != null) {
+            FilesListViewCellData item = lvFiles.getSelectionModel().getSelectedItem();
+
+            new Thread() {
+                @Override
+                public void run() {
+                    try {
+                        Process process = Runtime.getRuntime().exec(new String[]{adbFile.getAbsolutePath(), "pull", currentDirPath + item.getFile().getName(), file.getAbsolutePath()});
+                        int exitCode = process.waitFor();
+
+                        if (exitCode == 0) {
+                            InputStream inputStream = process.getInputStream();
+                            readInputStreamTo(inputStream, textAreaOutput);
+                            inputStream.close();
+
+                            Platform.runLater(() -> {
+                                textAreaOutput.appendText("文件[" + item.getFile().getName() + "]提取成功\n");
+                            });
+                        } else {
+                            InputStream errorStream = process.getErrorStream();
+                            readInputStreamTo(errorStream, textAreaOutput);
+                            errorStream.close();
+
+                            Platform.runLater(() -> {
+                                textAreaOutput.appendText("文件[" + item.getFile().getName() + "]提取失败\n");
+                            });
+                        }
+                    } catch (IOException | InterruptedException e) {
+                        e.printStackTrace();
+
+                        Platform.runLater(() -> Dialogs.showMessageDialog("提取文件时发生错误", "提示"));
+                    }
+                }
+            }.start();
         }
     }
 }

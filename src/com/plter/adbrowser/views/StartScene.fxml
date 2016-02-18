@@ -11,8 +11,9 @@
     </HBox>
 
     <StackPane alignment="CENTER" VBox.vgrow="ALWAYS">
-        <VBox>
-            <HBox style="-fx-alignment: center-left">
+        <VBox style="-fx-spacing: 5px">
+            <HBox style="-fx-alignment: center-left;-fx-spacing: 5px">
+                <Button managed="false" visible="false" fx:id="btnRetrieveFile" text="提取选中的文件" onAction="#btnRetrieveFileClickedHandler"/>
                 <Button text="↑" onAction="#btnToParentClickedHandler"/>
                 <Label fx:id="lbCurrentDirPath"/>
             </HBox>
