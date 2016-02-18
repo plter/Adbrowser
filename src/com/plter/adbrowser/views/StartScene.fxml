@@ -1,0 +1,28 @@
+<?import com.plter.adbrowser.conponents.FilesListView?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<VBox fx:controller="com.plter.adbrowser.controllers.StartSceneController"
+      xmlns:fx="http://javafx.com/fxml" style="-fx-padding: 5px;-fx-spacing: 5px" fx:id="rootView">
+
+    <HBox style="-fx-spacing: 5px;-fx-alignment: center-left">
+        <Label text="Adb路径"/>
+        <TextField editable="false" focusTraversable="false" fx:id="tfAdbPath" HBox.hgrow="ALWAYS"/>
+        <Button text="浏览" onAction="#btnBrowseForAdbClickedHandler"/>
+    </HBox>
+
+    <StackPane alignment="CENTER" VBox.vgrow="ALWAYS">
+        <VBox>
+            <HBox style="-fx-alignment: center-left">
+                <Button text="↑" onAction="#btnToParentClickedHandler"/>
+                <Label fx:id="lbCurrentDirPath"/>
+            </HBox>
+            <FilesListView fx:id="lvFiles"/>
+        </VBox>
+        <Button fx:id="btnStartBrowse" text="开始浏览" onAction="#btnStartBrowseClickedHandler"/>
+    </StackPane>
+
+    <HBox>
+        <Button text="清空输出" onAction="#btnClearOutputClickedHandler"/>
+    </HBox>
+    <TextArea fx:id="taOut" editable="false" style="-fx-min-height: 100px;-fx-max-height: 100px"/>
+</VBox>

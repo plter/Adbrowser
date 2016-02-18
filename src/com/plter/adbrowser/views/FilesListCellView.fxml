@@ -1,0 +1,7 @@
+<?import javafx.scene.image.ImageView?>
+<?import javafx.scene.layout.HBox?>
+<HBox fx:controller="com.plter.adbrowser.controllers.FilesListCellController"
+      xmlns:fx="http://javafx.com/fxml" style="-fx-padding: 5px;-fx-spacing: 5px">
+
+    <ImageView fx:id="ivIcon"/>
+</HBox>
